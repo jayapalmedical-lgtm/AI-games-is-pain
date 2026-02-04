@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dhradheesh.j AI Games</title>
+<style>
+body{font-family:Arial;text-align:center;background:#eef;}
+button{padding:10px;margin:5px;font-size:16px;}
+.game{display:none;margin-top:20px;}
+table{margin:auto;border-collapse:collapse;}
+td{width:60px;height:60px;border:2px solid black;font-size:28px;cursor:pointer;text-align:center;}
+h1,h2{margin:5px;}
+</style>
+</head>
+<body>
+
+<h1>🎮 Dhradheesh.j AI Game Hub</h1>
+<p>School Project</p>
+
+<button onclick="show('number')">🔢 Guess My Number</button>
+<button onclick="show('chess')">♟️ Casual Chess</button>
+<button onclick="show('ttt')">❌⭕ Tic Tac Toe</button>
+<button onclick="show('quiz')">🧠 Quiz</button>
+
+<!-- GUESS MY NUMBER -->
+<div id="number" class="game">
+<h2>AI Guess My Number</h2>
+<p>Think of a number between <b>1 and 100</b></p>
+<h3 id="guess">50</h3>
+<button onclick="low()">Too Low</button>
+<button onclick="correct()">Correct</button>
+<button onclick="high()">Too High</button>
+</div>
+
+<!-- CASUAL CHESS -->
+<div id="chess" class="game">
+<h2>Casual Chess (You vs AI)</h2>
+<p>White = You | Black = AI</p>
+<table id="chessBoard"></table>
+</div>
+
+<!-- TIC TAC TOE -->
+<div id="ttt" class="game">
+<h2>Tic Tac Toe</h2>
+<table>
+<tr><td onclick="playTTT(0)"></td><td onclick="playTTT(1)"></td><td onclick="playTTT(2)"></td></tr>
+<tr><td onclick="playTTT(3)"></td><td onclick="playTTT(4)"></td><td onclick="playTTT(5)"></td></tr>
+<tr><td onclick="playTTT(6)"></td><td onclick="playTTT(7)"></td><td onclick="playTTT(8)"></td></tr>
+</table>
+<p id="tttResult"></p>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="game">
+<h2>Quiz (Class 7–10)</h2>
+<p id="question"></p>
+<button onclick="answer(true)">True</button>
+<button onclick="answer(false)">False</button>
+<p id="score"></p>
+</div>
+
+<script>
+/* ===== MENU ===== */
+function show(id){
+document.querySelectorAll('.game').forEach(g=>g.style.display="none");
+document.getElementById(id).style.display="block";
+}
+
+/* ===== GUESS MY NUMBER ===== */
+let lo=1, hi=100, g=50;
+function update(){g=Math.floor((lo+hi)/2); document.getElementById("guess").innerText=g;}
+function low(){lo=g+1; update();}
+function high(){hi=g-1; update();}
+function correct(){alert("🎉 AI guessed your number: "+g);}
+
+/* ===== CASUAL CHESS ===== */
+let chess=[
+["♜","♞","♝","♛","♚","♝","♞","♜"],
+["♟","♟","♟","♟","♟","♟","♟","♟"],
+["","","","","","","",""],
+["","","","","","","",""],
+["","","","","","","",""],
+["","","","","","","",""],
+["♙","♙","♙","♙","♙","♙","♙","♙"],
+["♖","♘","♗","♕","♔","♗","♘","♖"]
+];
+let sel=null;
+
+function drawChess(){
+let t="";
+for(let r=0;r<8;r++){
+t+="<tr>";
+for(let c=0;c<8;c++){
+t+=<td onclick="pick(${r},${c})">${chess[r][c]}</td>;
+}
+t+="</tr>";
+}
+document.getElementById("chessBoard").innerHTML=t;
+}
+drawChess();
+
+function pick(r,c){
+if(!sel && chess[r][c]!=""){sel=[r,c];}
+else if(sel){
+chess[r][c]=chess[sel[0]][sel[1]];
+chess[sel[0]][sel[1]]="";
+sel=null;
+drawChess();
+setTimeout(aiChess,500);
+}
+}
+
+// Chess AI: captures if possible
+function aiChess(){
+let moves=[];
+for(let r=0;r<8;r++){
+for(let c=0;c<8;c++){
+if(chess[r][c]!="" && chess[r][c].match(/[♟♜♞♝♛♚]/)){
+let dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+for(let [dr,dc] of dirs){
+let nr=r+dr, nc=c+dc;
+if(nr>=0 && nr<8 && nc>=0 && nc<8){
+moves.push({from:[r,c],to:[nr,nc]});
+}
+}
+}
+}
+}
+if(moves.length==0) return;
+for(let m of moves){
+let tr=m.to[0], tc=m.to[1];
+if(chess[tr][tc]!="" && chess[tr][tc].match(/[♙♖♘♗♕♔]/)){
+chess[tr][tc]=chess[m.from[0]][m.from[1]];
+chess[m.from[0]][m.from[1]]="";
+drawChess();
+return;
+}
+}
+let m=moves[Math.floor(Math.random()*moves.length)];
+chess[m.to[0]][m.to[1]]=chess[m.from[0]][m.from[1]];
+chess[m.from[0]][m.from[1]]="";
+drawChess();
+}
+
+/* ===== TIC TAC TOE ===== */
+let board=["","","","","","","","",""];
+let over=false;
+const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+function playTTT(i){
+if(board[i]||over) return;
+board[i]="X"; drawTTT();
+if(check("X")){end("🎉 You Win!"); return;}
+aiTTT();
+if(check("O")){end("🤖 AI Wins!"); return;}
+if(!board.includes("")) end("🤝 Draw!");
+}
+
+// Smart Tic Tac Toe AI
+function aiTTT(){
+for(let i=0;i<board.length;i++){
+if(board[i]==""){board[i]="O"; if(check("O")){drawTTT(); return;} board[i]="";}
+}
+for(let i=0;i<board.length;i++){
+if(board[i]==""){board[i]="X"; if(check("X")){board[i]="O"; drawTTT(); return;} board[i]="";}
+}
+let e=board.map((v,i)=>v==""?i:null).filter(v=>v!=null);
+if(e.length) board[e[Math.floor(Math.random()*e.length)]]="O";
+drawTTT();
+}
+
+function drawTTT(){document.querySelectorAll("#ttt td").forEach((c,i)=>c.innerText=board[i]);}
+function check(p){return wins.some(w=>w.every(i=>board[i]==p));}
+function end(t){document.getElementById("tttResult").innerText=t; over=true;}
+
+/* ===== QUIZ ===== */
+let base=[
+["The Earth revolves around the Sun",true],
+["Water boils at 100°C",true],
+["Sound cannot travel in vacuum",true],
+["Humans have 2 lungs",true],
+["Lightning is hotter than the Sun",true],
+["The chemical symbol of water is H2O",true],
+["The Moon is a planet",false],
+["Plants make food using sunlight",true],
+["The speed of light is 3x10^8 m/s",true],
+["The human heart has 4 chambers",true],
+["Sharks are mammals",false],
+["Python is a programming language",true],
+["India's capital is New Delhi",true],
+["Blood is red",true],
+["Earth has one moon",true],
+["Saturn has rings",true],
+["Cows lay eggs",false],
+["Gold is a metal",true],
+["Venus is called the morning star",true],
+["Humans have 5 fingers on each hand",true],
+["Lightning is electricity",true],
+["The Pacific Ocean is the largest",true],
+["Rain is a form of precipitation",true],
+["Binary uses base 2",true],
+["CPU is brain of computer",true],
+["RAM is volatile memory",true],
+["The Nile is the longest river",true],
+["Earth rotates on its axis",true],
+["Plants produce oxygen",true],
+["Electricity flows through conductors",true],
+["The capital of France is Paris",true],
+["Water freezes at 0°C",true],
+["The human body has 206 bones",true],
+["Jupiter is the largest planet in the Solar System",true],
+["Lightning is caused by static electricity",true],
+["The chemical symbol for Sodium is Na",true],
+["Photosynthesis happens in leaves",true],
+["Sound travels faster in air than in water",false],
+["The Moon has phases",true],
+["Blood contains hemoglobin",true]
+];
+
+// Generate 100+ random quiz questions
+let q=[];
+while(q.length<100) q.push(base[Math.floor(Math.random()*base.length)]);
+let qi=0, sc=0;
+document.getElementById("question").innerText=q[0][0];
+
+function answer(a){
+if(a==q[qi][1]) sc++;
+qi++;
+if(qi>=q.length){alert("Quiz Finished! Score: "+sc+"/"+q.length); qi=0; sc=0;}
+document.getElementById("question").innerText=q[qi][0];
+document.getElementById("score").innerText="Score: "+sc+"/"+qi;
+}
+</script>
+
+</body>
+</html>
